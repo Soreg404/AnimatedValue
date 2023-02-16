@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <ctime>
+#include <list>
 #include <thread>
 
 namespace cr = std::chrono;
@@ -79,3 +80,68 @@ private:
 
 };
 
+
+struct Animated {
+
+	Animated(float v) {
+		keyframes.push_back({ v, 0 });
+	}
+	Animated(float v, size_t f) {
+		keyframes.push_back({ v, f });
+	}
+
+	void move(size_t from, size_t to);
+
+	void insert(float v, size_t f) {
+		auto fr = findClosestFrameToRight(f);
+		if(fr == keyframes.end() || fr->f != f)
+			keyframes.insert(fr, {v, f});
+		else fr->v = v;
+	}
+
+	Timeline *timeline{ nullptr };
+
+	float val() {
+		if(!timeline) return keyframes.begin()->v;
+
+		size_t currFrame = timeline->getFrame();
+
+		if(currFrame <= keyframes.begin()->f) return keyframes.begin()->v;
+		if(currFrame >= keyframes.rbegin()->f) return keyframes.rbegin()->v;
+
+		float ret{};
+		auto firstKeyframe = keyframes.begin();
+
+		for(auto it = keyframes.begin(); it != keyframes.end(); it++) {
+			if(it->f <= currFrame && currFrame < std::next(it)->f) {
+				firstKeyframe = it;
+				break;
+			}
+		}
+
+		float delta = std::next(firstKeyframe)->v - firstKeyframe->v;
+		double percent = static_cast<double>(currFrame - firstKeyframe->f) / static_cast<double>(std::next(firstKeyframe)->f - firstKeyframe->f);
+
+		//float intpVal = interpolate(delat, percent);
+
+		return firstKeyframe->v + /* intpVal */ delta * percent;
+	}
+
+private:
+
+	struct Keyframe {
+		float v;
+		size_t f;
+	};
+
+	std::list<Keyframe> keyframes;
+
+	std::list<Keyframe>::iterator findClosestFrameToRight(size_t f) {
+		auto last = keyframes.end();
+		if(!keyframes.size()) return last;
+		for(auto it = last; it != keyframes.begin(); it--) {
+			if(std::prev(it)->f < f) return it;
+		}
+		return keyframes.begin();
+	}
+};

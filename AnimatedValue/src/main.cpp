@@ -22,9 +22,18 @@ int main(int argc, const char *argv[]) {
 
 	Timeline tl;
 	tl.mode = Timeline::Mode::FRAMES;
-	tl.durationFrames(60);
+	tl.durationFrames(250);
 
 	cr::steady_clock::time_point timer;
+
+	Animated av1 = 2;
+	av1.timeline = &tl;
+	av1.insert(8, 20);
+	av1.insert(45, 30);
+	av1.insert(2, 90);
+	av1.insert(23, 100);
+	av1.insert(34, 150);
+	av1.insert(1, 220);
 
 	do {
 
@@ -59,7 +68,11 @@ int main(int argc, const char *argv[]) {
 		for(int i = 0; i < 30; i++) {
 			cout << (i != pos ? '-' : '#');
 		}
+		cout << "\n\n";
+
+		for(int i = 0; i < 50; i++) cout << ( i == (int)av1.val() ? '#' : ' ');
 		cout << "\n";
+
 
 		for(int i = 0; i < 200; i++) cout << "     ";
 		std::this_thread::sleep_for(cr::duration<float>(1.f/tl.fps()) - (cr::steady_clock::now() - timer));
