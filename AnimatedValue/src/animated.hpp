@@ -33,7 +33,22 @@ public:
 		STOP, PLAYING, PAUSE
 	};
 
-	double fps{ 24 };
+	enum class Mode {
+		TIME, FRAMES
+	} mode{ Mode::FRAMES };
+
+	enum class End {
+		LOOP, PAUSE, STOP, PLAY
+	} end;
+
+	inline void fps(double value) { m_fps = value >= 1 ? value : 1; }
+	inline double fps() { return m_fps; }
+
+	inline void durationTime(cr::duration<double> d) { m_dTime = d; }
+	inline cr::duration<double> durationTime() { return mode == Mode::TIME ? m_dTime : cr::duration<double>(m_dFrames / m_fps); }
+
+	inline void durationFrames(size_t d) { m_dFrames = d; }
+	inline size_t durationFrames() { return mode == Mode::FRAMES ? m_dFrames : m_dTime.count() * m_fps; }
 
 	void play(), pause(), stop(), toggle();
 	inline State getState() const { return m_state; }
@@ -50,12 +65,17 @@ public:
 		return cr::duration<double>(getTime()).count();
 	}
 
-	inline int getFrame() const {
-		return static_cast<int>(getSecs() * fps);
+	inline size_t getFrame() const {
+		return static_cast<size_t>(getSecs() * m_fps);
 	}
 
 private:
 
+	double m_fps{ 24 };
 	State m_state{ State::STOP };
 
+	size_t m_dFrames{ 0 };
+	cr::duration<double> m_dTime{ 0 };
+
 };
+
