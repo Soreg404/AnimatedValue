@@ -1,85 +1,106 @@
 ﻿#include "animated.hpp"
 #include <conio.h>
 #include <iomanip>
+#include <vector>
+#include <sstream>
 #include <Windows.h>
 
+int scw = 80, sch = 20;
+std::vector<char> screen = std::vector<char>(scw * sch);
+
+void drawOnScreen(int x, int y, const char *text) {
+	size_t tlen = strlen(text), ti = 0;
+	for(size_t i = y * scw + x; i < screen.size() && ti < tlen; i++, ti++) { screen[i] = text[ti]; }
+}
+
+char sprintfBuff[200]{ 0 };
 
 int main(int argc, const char *argv[]) {
 
 	system("@chcp 65001 > nul");
 
-	DWORD ncw;
 	HANDLE hCon = GetStdHandle(STD_OUTPUT_HANDLE);
 	CONSOLE_SCREEN_BUFFER_INFO cbi;
 	GetConsoleScreenBufferInfo(hCon, &cbi);
+	COORD beginPos = cbi.dwCursorPosition;
 
 	CONSOLE_CURSOR_INFO cci;
 	GetConsoleCursorInfo(hCon, &cci);
 	cci.bVisible = false;
-	SetConsoleCursorInfo(hCon, &cci);
 
-	COORD beginPos = cbi.dwCursorPosition;
 
 	Timeline tl;
 	tl.durationFrames(250);
-	cr::steady_clock::time_point timer;
 
 
-	Animated av1 = 2;
+	Animated av1 = 5;
 	av1.timeline = &tl;
-	av1.insert(1, 20);
-	av1.insert(20, 20);
-	av1.insert(80, 5);
-	av1.insert(130, 45);
-	av1.insert(150, 1);
-	av1.insert(250, 20);
+	av1.insert(100, 20);
+	av1.insert(150, 79);
+	av1.insert(220, 0);
+	av1.insert(250, 0);
 
-	do {
+	int counter = 0;
+	int fps = 0;
 
+
+	while(true) {
+
+		SetConsoleCursorInfo(hCon, &cci);
 		SetConsoleCursorPosition(hCon, beginPos);
 
-		timer = cr::steady_clock::now();
+		cr::steady_clock::time_point delayTimer = cr::steady_clock::now();
 
-		char c = 0;
+		for(auto &c : screen) c = ' ';
+
+
 		if(_kbhit()) {
-			c = _getch();
+			char c = _getch();
+			switch(c) {
+				case 'f':
+					float newFps;
+					std::cout << "new fps value: ";
+					std::cin >> newFps;
+					tl.fps(newFps);
+					continue;
+					break;
+				case ' ': tl.toggle(); break;
+				case 's': tl.stop(); break;
+			}
+			if(c >= '0' && c <= '9') {
+				float n = static_cast<float>(c - '0') / 10.f;
+				tl.playTime(tl.durationTime() * n);
+			}
 		}
 
-		switch(c) {
-			case 'f':
-				float newFps;
-				FillConsoleOutputCharacter(hCon, ' ', 200, beginPos, &ncw);
-				std::cin >> newFps;
-				SetConsoleCursorPosition(hCon, beginPos);
-				tl.fps(newFps);
-
-				break;
-			case 32: tl.toggle(); break;
-			case 's': tl.stop();
-		}
 
 		size_t currFrame = tl.frame();
-		float animPercent = static_cast<double>(currFrame) / tl.durationFrames();
+		float animPercent = static_cast<float>(currFrame) / tl.durationFrames();
+		
+		sprintf_s(sprintfBuff, 200, "time: %f s;  frame: %zi", tl.playTime(), currFrame);
+		drawOnScreen(0, 18, sprintfBuff);
+		
+		int pos = (scw - 1) * animPercent;
+		for(int i = 0; i < scw; i++) { drawOnScreen(i, 19, "-"); }
+		drawOnScreen(pos, 19, "#");
 
-		cout << std::fixed << std::setw(4) << "time: " << tl.playTime() << "s;  frame: " << currFrame << "            \n";
+		sprintf_s(sprintfBuff, 200, "counter: %i;  fps: %i", counter++, fps);
+		drawOnScreen(0, 0, sprintfBuff);
 
-		int pos = 30 * animPercent;
-		for(int i = 0; i < 30; i++) {
-			cout << (i != pos ? '-' : '#');
+		drawOnScreen(av1.val(), 10, "#");
+
+		for(size_t i = 0; i < sch; i++) {
+			for(size_t j = 0; j < scw; j++) printf("%c", screen[i * scw + j]);
+			printf("|\n");
 		}
-		cout << "\n\n";
-
-		for(int i = 0; i < 50; i++) cout << ( i == (int)av1.val() ? '#' : ' ');
-		cout << "\n";
-
-
-		for(int i = 0; i < 200; i++) cout << "     ";
-		std::this_thread::sleep_for(cr::duration<float>(1.f/tl.fps()) - (cr::steady_clock::now() - timer));
-		timer = cr::steady_clock::now();
+		for(size_t k = 0; k < scw; k++) printf("_");
+		printf("|");
 
 		tl.update();
 
-	} while(true);
+		fps = 1s / (cr::steady_clock::now() - delayTimer);
+
+	}
 
 	return 0;
 }

@@ -15,7 +15,6 @@ class Timeline {
 public:
 
 	Timeline() {
-
 	}
 
 	enum class State {
@@ -33,16 +32,20 @@ public:
 	}
 	inline double fps() { return m_fps; }
 
-	inline double playTime() const { return m_playTime.count(); }
+	inline double playTime() const {
+		return m_playTime.count();
+	}
 	inline void playTime(cr::duration<double> setPlayTime) { m_newPlayTime = setPlayTime; m_playTimeChanged = true; }
 
-	inline size_t frame() const { return static_cast<size_t>(playTime() * m_fps); }
+	inline size_t frame() const {
+		return static_cast<size_t>(playTime() * m_fps);
+	}
 	inline void frame(size_t setFrame) {  }
 
-	inline void durationTime(cr::duration<double> d) { m_durationTime = d; m_durationFrames = m_durationTime.count() * m_fps; }
+	inline void durationTime(cr::duration<double> d) { m_durationTime = d; m_durationFrames = std::ceil(m_durationTime.count() * m_fps); }
 	inline cr::duration<double> durationTime() { return m_durationTime; }
 
-	inline void durationFrames(size_t d) { m_durationFrames = d; m_durationTime = cr::duration<double>(d / m_fps); }
+	inline void durationFrames(size_t d) { m_durationFrames = d > 1 ? d : 1; m_durationTime = cr::duration<double>(d / m_fps); }
 	inline size_t durationFrames() { return m_durationFrames; }
 
 	inline State state() const { return m_state; }
@@ -69,30 +72,31 @@ public:
 		}
 	}
 
-	void update(cr::duration<double> elapsedTime) {
-		cr::duration<double> dt{ 0 };
+	void update() {
+		auto tnow = cr::steady_clock::now();
+		auto dt = tnow - m_tLast;
+		m_tLast = tnow;
 		if(m_playTimeChanged) {
 			m_playTime = m_newPlayTime;
 			m_playTimeChanged = false;
-		} else dt = elapsedTime;
-		if(m_state == State::PLAY) {
+		} else if(m_state == State::PLAY) {
 			m_playTime += dt;
-			if(m_durationTime != 0s && m_playTime > m_durationTime) {
-				switch(onEnd) {
-					case End::LOOP_CONTINUE:
-						cr::duration<double> newPlayTime = m_playTime;
-						do { newPlayTime -= m_durationTime; } while(newPlayTime > m_durationTime);
-						m_playTime = newPlayTime;
-						break;
-					case End::STOP:
-						m_playTime = 0s;
-						m_state = State::STOP;
-						break;
-					case End::WAIT:
-						m_playTime = m_durationTime;
-						m_state = State::END;
-						break;
-				}
+		}
+		if(m_durationTime != 0s && m_playTime > m_durationTime) {
+			switch(onEnd) {
+				case End::LOOP_CONTINUE:
+					cr::duration<double> newPlayTime = m_playTime;
+					do { newPlayTime -= m_durationTime; } while(newPlayTime > m_durationTime);
+					m_playTime = newPlayTime;
+					break;
+				case End::STOP:
+					m_playTime = 0s;
+					m_state = State::STOP;
+					break;
+				case End::WAIT:
+					m_playTime = m_durationTime;
+					m_state = State::END;
+					break;
 			}
 		}
 		if(m_stateChanged) {
@@ -111,17 +115,10 @@ public:
 			m_stateChanged = false;
 		}
 	}
-	inline void update() { update(m_state == State::PLAY ? elapsed() : 0s); }
 
 private:
 
 	cr::steady_clock::time_point m_tLast;
-	cr::duration<double> elapsed() {
-		auto now = cr::steady_clock::now();
-		auto tmpLast = m_tLast;
-		m_tLast = now;
-		return cr::duration_cast<cr::duration<double>>(now - tmpLast);
-	}
 
 	cr::duration<double> m_playTime{ 0 };
 	cr::duration<double> m_newPlayTime{ 0 };
