@@ -21,19 +21,18 @@ int main(int argc, const char *argv[]) {
 	COORD beginPos = cbi.dwCursorPosition;
 
 	Timeline tl;
-	tl.mode = Timeline::Mode::FRAMES;
 	tl.durationFrames(250);
-
 	cr::steady_clock::time_point timer;
+
 
 	Animated av1 = 2;
 	av1.timeline = &tl;
-	av1.insert(8, 20);
-	av1.insert(45, 30);
-	av1.insert(2, 90);
-	av1.insert(23, 100);
-	av1.insert(34, 150);
-	av1.insert(1, 220);
+	av1.insert(1, 20);
+	av1.insert(20, 20);
+	av1.insert(80, 5);
+	av1.insert(130, 45);
+	av1.insert(150, 1);
+	av1.insert(250, 20);
 
 	do {
 
@@ -59,10 +58,10 @@ int main(int argc, const char *argv[]) {
 			case 's': tl.stop();
 		}
 
-		size_t currFrame = tl.getFrame();
+		size_t currFrame = tl.frame();
 		float animPercent = static_cast<double>(currFrame) / tl.durationFrames();
 
-		cout << std::fixed << std::setw(4) << "time: " << tl.getSecs() << "s;  frame: " << currFrame << "            \n";
+		cout << std::fixed << std::setw(4) << "time: " << tl.playTime() << "s;  frame: " << currFrame << "            \n";
 
 		int pos = 30 * animPercent;
 		for(int i = 0; i < 30; i++) {
@@ -78,6 +77,7 @@ int main(int argc, const char *argv[]) {
 		std::this_thread::sleep_for(cr::duration<float>(1.f/tl.fps()) - (cr::steady_clock::now() - timer));
 		timer = cr::steady_clock::now();
 
+		tl.update();
 
 	} while(true);
 
