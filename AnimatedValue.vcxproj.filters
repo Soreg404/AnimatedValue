@@ -15,15 +15,15 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\main.cpp">
+    <ClCompile Include="source\animated.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\animated.cpp">
+    <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\animated.hpp">
+    <ClInclude Include="include\animated.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
